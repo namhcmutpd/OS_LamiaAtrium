@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OS Simulation - Gantt Charts</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a2e; color: #eee; padding: 20px; }
+        h1 { text-align: center; color: #4ECDC4; margin-bottom: 30px; }
+        h2 { color: #FF6B6B; margin: 20px 0 10px; border-bottom: 2px solid #FF6B6B; padding-bottom: 5px; }
+        h3 { color: #45B7D1; margin: 15px 0 8px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .test-section { background: #16213e; border-radius: 10px; padding: 20px; margin-bottom: 25px; }
+        .config { background: #0f3460; padding: 10px 15px; border-radius: 5px; margin-bottom: 15px; font-size: 14px; }
+        
+        /* Gantt Chart Styles */
+        .gantt-container { overflow-x: auto; margin: 15px 0; }
+        .gantt-table { border-collapse: collapse; min-width: 100%; }
+        .gantt-table th, .gantt-table td { 
+            border: 1px solid #333; 
+            padding: 8px 4px; 
+            text-align: center; 
+            min-width: 35px;
+            font-size: 12px;
+        }
+        .gantt-table th { background: #0f3460; color: #4ECDC4; }
+        .gantt-table .cpu-label { background: #1a1a2e; color: #fff; font-weight: bold; min-width: 60px; }
+        
+        /* Process Colors */
+        .p1 { background: #FF6B6B !important; color: #fff; }
+        .p2 { background: #4ECDC4 !important; color: #000; }
+        .p3 { background: #45B7D1 !important; color: #fff; }
+        .p4 { background: #96CEB4 !important; color: #000; }
+        .p5 { background: #FFEAA7 !important; color: #000; }
+        .p6 { background: #DDA0DD !important; color: #000; }
+        .p7 { background: #98D8C8 !important; color: #000; }
+        .p8 { background: #F7DC6F !important; color: #000; }
+        .idle { background: #2d2d44 !important; color: #666; }
+        .stopped { background: #1a1a2e !important; color: #444; }
+        
+        /* Timeline Styles */
+        .timeline-table { border-collapse: collapse; margin: 10px 0; }
+        .timeline-table th, .timeline-table td { 
+            border: 1px solid #333; 
+            padding: 4px 6px; 
+            text-align: center;
+            font-size: 11px;
+            min-width: 25px;
+        }
+        .timeline-table th { background: #0f3460; }
+        .timeline-table .proc-label { text-align: left; min-width: 80px; background: #1a1a2e; }
+        .R { background: #2ECC71 !important; color: #fff; }
+        .W { background: #F39C12 !important; color: #fff; }
+        .F { background: #E74C3C !important; color: #fff; }
+        .notloaded { background: #1a1a2e; color: #444; }
+        
+        /* Legend */
+        .legend { display: flex; flex-wrap: wrap; gap: 15px; margin: 15px 0; padding: 15px; background: #0f3460; border-radius: 5px; }
+        .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+        .legend-color { width: 20px; height: 20px; border-radius: 3px; }
+        
+        /* Summary Table */
+        .summary-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        .summary-table th, .summary-table td { border: 1px solid #333; padding: 10px; text-align: left; }
+        .summary-table th { background: #0f3460; color: #4ECDC4; }
+        .summary-table tr:nth-child(even) { background: #1a1a2e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖥️ OS Simulation - Gantt Chart Visualization</h1>
+        
+        <!-- Legend -->
+        <div class="legend">
+            <strong>Process Colors:</strong>
+            <div class="legend-item"><div class="legend-color p1"></div>P1</div>
+            <div class="legend-item"><div class="legend-color p2"></div>P2</div>
+            <div class="legend-item"><div class="legend-color p3"></div>P3</div>
+            <div class="legend-item"><div class="legend-color p4"></div>P4</div>
+            <div class="legend-item"><div class="legend-color p5"></div>P5</div>
+            <div class="legend-item"><div class="legend-color p6"></div>P6</div>
+            <div class="legend-item"><div class="legend-color p7"></div>P7</div>
+            <div class="legend-item"><div class="legend-color p8"></div>P8</div>
+            <div class="legend-item"><div class="legend-color idle"></div>Idle</div>
+            <div class="legend-item"><div class="legend-color stopped"></div>Stopped</div>
+        </div>
+        <div class="legend">
+            <strong>State Colors:</strong>
+            <div class="legend-item"><div class="legend-color R"></div>Running</div>
+            <div class="legend-item"><div class="legend-color W"></div>Waiting</div>
+            <div class="legend-item"><div class="legend-color F"></div>Finished</div>
+            <div class="legend-item"><div class="legend-color notloaded"></div>Not Loaded</div>
+        </div>
+
+        <!-- TEST 1: sched -->
+        <div class="test-section">
+            <h2>TEST 1: sched.output</h2>
+            <div class="config">Config: 2 CPUs | 3 Processes | Time Slot = 2</div>
+            
+            <h3>Gantt Chart</h3>
+            <div class="gantt-container">
+                <table class="gantt-table">
+                    <tr>
+                        <th>CPU</th>
+                        <th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th>
+                        <th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 0</td>
+                        <td class="idle">-</td><td class="idle">-</td><td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td>
+                        <td class="idle">-</td><td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td>
+                        <td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td><td class="p1">P1</td>
+                        <td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="stopped">X</td>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 1</td>
+                        <td class="idle">-</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td>
+                        <td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td>
+                        <td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td>
+                        <td class="p3">P3</td><td class="stopped">X</td><td class="stopped">X</td><td class="stopped">X</td><td class="stopped">X</td><td class="stopped">X</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <h3>Execution Timeline</h3>
+            <div class="gantt-container">
+                <table class="timeline-table">
+                    <tr>
+                        <th>Process</th>
+                        <th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th>
+                        <th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th>
+                    </tr>
+                    <tr>
+                        <td class="proc-label">P1 (prio=1)</td>
+                        <td class="notloaded">-</td><td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td>
+                        <td class="W">W</td><td class="W">W</td><td class="W">W</td><td class="W">W</td><td class="W">W</td>
+                        <td class="W">W</td><td class="W">W</td><td class="W">W</td><td class="W">W</td><td class="R">R</td>
+                        <td class="R">R</td><td class="W">W</td><td class="W">W</td><td class="R">R</td><td class="R">R</td><td class="F">F</td>
+                    </tr>
+                    <tr>
+                        <td class="proc-label">P2 (prio=0)</td>
+                        <td class="notloaded">-</td><td class="notloaded">-</td><td class="R">R</td><td class="R">R</td><td class="R">R</td>
+                        <td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td>
+                        <td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="F">F</td>
+                        <td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td>
+                    </tr>
+                    <tr>
+                        <td class="proc-label">P3 (prio=0)</td>
+                        <td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td><td class="W">W</td><td class="W">W</td>
+                        <td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td>
+                        <td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td>
+                        <td class="R">R</td><td class="F">F</td><td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- TEST 2: sched_0 -->
+        <div class="test-section">
+            <h2>TEST 2: sched_0.output</h2>
+            <div class="config">Config: 1 CPU | 2 Processes | Time Slot = 2</div>
+            
+            <h3>Gantt Chart</h3>
+            <div class="gantt-container">
+                <table class="gantt-table">
+                    <tr>
+                        <th>CPU</th>
+                        <th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th>
+                        <th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th>
+                        <th>20</th><th>21</th><th>22</th><th>23</th>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 0</td>
+                        <td class="idle">-</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td>
+                        <td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td>
+                        <td class="p2">P2</td><td class="p2">P2</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td>
+                        <td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td>
+                        <td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="stopped">X</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <h3>Execution Timeline</h3>
+            <div class="gantt-container">
+                <table class="timeline-table">
+                    <tr>
+                        <th>Process</th>
+                        <th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th>
+                        <th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th>
+                        <th>20</th><th>21</th><th>22</th><th>23</th>
+                    </tr>
+                    <tr>
+                        <td class="proc-label">P1 (prio=4)</td>
+                        <td class="notloaded">-</td><td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td>
+                        <td class="W">W</td><td class="W">W</td><td class="W">W</td><td class="W">W</td><td class="W">W</td>
+                        <td class="W">W</td><td class="W">W</td><td class="R">R</td><td class="R">R</td><td class="R">R</td>
+                        <td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td>
+                        <td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="F">F</td>
+                    </tr>
+                    <tr>
+                        <td class="proc-label">P2 (prio=0)</td>
+                        <td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td>
+                        <td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td><td class="R">R</td>
+                        <td class="R">R</td><td class="R">R</td><td class="F">F</td><td class="notloaded">-</td><td class="notloaded">-</td>
+                        <td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td>
+                        <td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td><td class="notloaded">-</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- TEST 3: sched_1 -->
+        <div class="test-section">
+            <h2>TEST 3: sched_1.output</h2>
+            <div class="config">Config: 1 CPU | 4 Processes | Time Slot = 2</div>
+            
+            <h3>Gantt Chart (Slot 0-25)</h3>
+            <div class="gantt-container">
+                <table class="gantt-table">
+                    <tr>
+                        <th>CPU</th>
+                        <th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th>
+                        <th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th>
+                        <th>20</th><th>21</th><th>22</th><th>23</th><th>24</th><th>25</th>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 0</td>
+                        <td class="idle">-</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td>
+                        <td class="p2">P2</td><td class="p2">P2</td><td class="p3">P3</td><td class="p3">P3</td><td class="p2">P2</td>
+                        <td class="p2">P2</td><td class="p4">P4</td><td class="p4">P4</td><td class="p3">P3</td><td class="p3">P3</td>
+                        <td class="p2">P2</td><td class="p2">P2</td><td class="p4">P4</td><td class="p4">P4</td><td class="p3">P3</td>
+                        <td class="p3">P3</td><td class="p2">P2</td><td class="p4">P4</td><td class="p4">P4</td><td class="p3">P3</td><td class="p3">P3</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <h3>Gantt Chart (Slot 26-46)</h3>
+            <div class="gantt-container">
+                <table class="gantt-table">
+                    <tr>
+                        <th>CPU</th>
+                        <th>26</th><th>27</th><th>28</th><th>29</th><th>30</th><th>31</th><th>32</th><th>33</th><th>34</th><th>35</th>
+                        <th>36</th><th>37</th><th>38</th><th>39</th><th>40</th><th>41</th><th>42</th><th>43</th><th>44</th><th>45</th><th>46</th>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 0</td>
+                        <td class="p4">P4</td><td class="p4">P4</td><td class="p3">P3</td><td class="p3">P3</td><td class="p4">P4</td>
+                        <td class="p4">P4</td><td class="p3">P3</td><td class="p3">P3</td><td class="p4">P4</td><td class="p1">P1</td>
+                        <td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td>
+                        <td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="stopped">X</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- TEST 4: os_0_mlq_paging -->
+        <div class="test-section">
+            <h2>TEST 4: os_0_mlq_paging.output</h2>
+            <div class="config">Config: 2 CPUs | 4 Processes | Time Slot = 2 | WITH PAGING</div>
+            
+            <h3>Gantt Chart</h3>
+            <div class="gantt-container">
+                <table class="gantt-table">
+                    <tr>
+                        <th>CPU</th>
+                        <th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th>
+                        <th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>19</th>
+                        <th>20</th><th>21</th><th>22</th><th>23</th><th>24</th><th>25</th>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 0</td>
+                        <td class="idle">-</td><td class="idle">-</td><td class="idle">-</td><td class="p2">P2</td><td class="p2">P2</td>
+                        <td class="p2">P2</td><td class="p2">P2</td><td class="p4">P4</td><td class="p4">P4</td><td class="p4">P4</td>
+                        <td class="p4">P4</td><td class="p4">P4</td><td class="p4">P4</td><td class="p4">P4</td><td class="p4">P4</td>
+                        <td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td><td class="p1">P1</td>
+                        <td class="p1">P1</td><td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td><td class="stopped">X</td>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 1</td>
+                        <td class="idle">-</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td>
+                        <td class="p1">P1</td><td class="p1">P1</td><td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td>
+                        <td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td><td class="p1">P1</td><td class="p1">P1</td>
+                        <td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p4">P4</td>
+                        <td class="p4">P4</td><td class="p4">P4</td><td class="p4">P4</td><td class="stopped">X</td><td class="stopped">X</td><td class="stopped">X</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- TEST 5: os_1_mlq_paging -->
+        <div class="test-section">
+            <h2>TEST 5: os_1_mlq_paging.output</h2>
+            <div class="config">Config: 4 CPUs | 8 Processes | Time Slot = 2 | WITH PAGING</div>
+            
+            <h3>Gantt Chart (Slot 0-14)</h3>
+            <div class="gantt-container">
+                <table class="gantt-table">
+                    <tr>
+                        <th>CPU</th>
+                        <th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th>
+                        <th>10</th><th>11</th><th>12</th><th>13</th><th>14</th>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 0</td>
+                        <td class="idle">-</td><td class="idle">-</td><td class="idle">-</td><td class="idle">-</td><td class="idle">-</td>
+                        <td class="idle">-</td><td class="idle">-</td><td class="p4">P4</td><td class="p4">P4</td><td class="p4">P4</td>
+                        <td class="p4">P4</td><td class="p4">P4</td><td class="p4">P4</td><td class="p5">P5</td><td class="p5">P5</td>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 1</td>
+                        <td class="idle">-</td><td class="idle">-</td><td class="idle">-</td><td class="idle">-</td><td class="idle">-</td>
+                        <td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td><td class="p2">P2</td>
+                        <td class="p2">P2</td><td class="p2">P2</td><td class="p7">P7</td><td class="p7">P7</td><td class="p7">P7</td>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 2</td>
+                        <td class="idle">-</td><td class="idle">-</td><td class="idle">-</td><td class="p2">P2</td><td class="p2">P2</td>
+                        <td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td><td class="p3">P3</td>
+                        <td class="p3">P3</td><td class="p5">P5</td><td class="p2">P2</td><td class="p2">P2</td><td class="p4">P4</td>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 3</td>
+                        <td class="idle">-</td><td class="idle">-</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td>
+                        <td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p5">P5</td><td class="p5">P5</td>
+                        <td class="p6">P6</td><td class="p6">P6</td><td class="p6">P6</td><td class="p6">P6</td><td class="p6">P6</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <h3>Gantt Chart (Slot 15-28)</h3>
+            <div class="gantt-container">
+                <table class="gantt-table">
+                    <tr>
+                        <th>CPU</th>
+                        <th>15</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th><th>24</th>
+                        <th>25</th><th>26</th><th>27</th><th>28</th>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 0</td>
+                        <td class="p1">P1</td><td class="p1">P1</td><td class="p7">P7</td><td class="p7">P7</td><td class="p7">P7</td>
+                        <td class="p7">P7</td><td class="p7">P7</td><td class="p7">P7</td><td class="p7">P7</td><td class="p7">P7</td>
+                        <td class="p7">P7</td><td class="p7">P7</td><td class="p7">P7</td><td class="stopped">X</td>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 1</td>
+                        <td class="p7">P7</td><td class="p7">P7</td><td class="p8">P8</td><td class="p8">P8</td><td class="p8">P8</td>
+                        <td class="p8">P8</td><td class="p8">P8</td><td class="p8">P8</td><td class="p8">P8</td><td class="stopped">X</td>
+                        <td class="stopped">X</td><td class="stopped">X</td><td class="stopped">X</td><td class="stopped">X</td>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 2</td>
+                        <td class="p4">P4</td><td class="p4">P4</td><td class="p4">P4</td><td class="p4">P4</td><td class="p4">P4</td>
+                        <td class="p4">P4</td><td class="stopped">X</td><td class="stopped">X</td><td class="stopped">X</td><td class="stopped">X</td>
+                        <td class="stopped">X</td><td class="stopped">X</td><td class="stopped">X</td><td class="stopped">X</td>
+                    </tr>
+                    <tr>
+                        <td class="cpu-label">CPU 3</td>
+                        <td class="p6">P6</td><td class="p6">P6</td><td class="p6">P6</td><td class="p6">P6</td><td class="p6">P6</td>
+                        <td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td><td class="p1">P1</td>
+                        <td class="p1">P1</td><td class="stopped">X</td><td class="stopped">X</td><td class="stopped">X</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Summary Table -->
+        <div class="test-section">
+            <h2>Summary - All Test Cases</h2>
+            <table class="summary-table">
+                <tr>
+                    <th>Test Case</th>
+                    <th>CPUs</th>
+                    <th>Processes</th>
+                    <th>Time Slot</th>
+                    <th>Paging</th>
+                    <th>Total Slots</th>
+                    <th>Notes</th>
+                </tr>
+                <tr><td>sched</td><td>2</td><td>3</td><td>2</td><td>No</td><td>20</td><td>Basic MLQ scheduling</td></tr>
+                <tr><td>sched_0</td><td>1</td><td>2</td><td>2</td><td>No</td><td>23</td><td>Single CPU priority test</td></tr>
+                <tr><td>sched_1</td><td>1</td><td>4</td><td>2</td><td>No</td><td>46</td><td>Round-robin with priority</td></tr>
+                <tr><td>os_0_mlq_paging</td><td>2</td><td>4</td><td>2</td><td>Yes</td><td>25</td><td>Paging with 2 CPUs</td></tr>
+                <tr><td>os_1_mlq_paging</td><td>4</td><td>8</td><td>2</td><td>Yes</td><td>28</td><td>Full paging test 4 CPUs</td></tr>
+                <tr><td>os_1_mlq_paging_small_1K</td><td>4</td><td>8</td><td>2</td><td>Yes</td><td>28</td><td>RAM=1KB stress test</td></tr>
+                <tr><td>os_1_mlq_paging_small_4K</td><td>4</td><td>8</td><td>2</td><td>Yes</td><td>28</td><td>RAM=4KB stress test</td></tr>
+                <tr><td>os_1_singleCPU_mlq</td><td>1</td><td>8</td><td>2</td><td>No</td><td>76</td><td>Single CPU 8 processes</td></tr>
+                <tr><td>os_1_singleCPU_mlq_paging</td><td>1</td><td>8</td><td>2</td><td>Yes</td><td>76</td><td>Single CPU with paging</td></tr>
+                <tr><td>os_sc</td><td>1</td><td>1</td><td>2</td><td>Yes</td><td>11</td><td>Syscall test</td></tr>
+                <tr><td>os_syscall</td><td>1</td><td>1</td><td>2</td><td>Yes</td><td>15</td><td>Syscall with memory</td></tr>
+                <tr><td>os_syscall_list</td><td>1</td><td>1</td><td>2</td><td>Yes</td><td>11</td><td>List syscalls</td></tr>
+            </table>
+        </div>
+
+        <!-- Process Lifecycle -->
+        <div class="test-section">
+            <h2>Process Lifecycle Summary</h2>
+            <table class="summary-table">
+                <tr>
+                    <th>Test</th>
+                    <th>Process</th>
+                    <th>PID</th>
+                    <th>Priority</th>
+                    <th>Load</th>
+                    <th>Start</th>
+                    <th>Finish</th>
+                    <th>Turnaround</th>
+                    <th>Waiting</th>
+                </tr>
+                <tr><td>sched</td><td class="p1">p1s</td><td>1</td><td>1</td><td>0</td><td>1</td><td>20</td><td>20</td><td>10</td></tr>
+                <tr><td>sched</td><td class="p2">p2s</td><td>2</td><td>0</td><td>1</td><td>2</td><td>14</td><td>13</td><td>1</td></tr>
+                <tr><td>sched</td><td class="p3">p3s</td><td>3</td><td>0</td><td>2</td><td>5</td><td>16</td><td>14</td><td>6</td></tr>
+                <tr><td>sched_0</td><td class="p1">s0</td><td>1</td><td>4</td><td>0</td><td>1</td><td>23</td><td>23</td><td>9</td></tr>
+                <tr><td>sched_0</td><td class="p2">s1</td><td>2</td><td>0</td><td>4</td><td>5</td><td>12</td><td>8</td><td>0</td></tr>
+                <tr><td>sched_1</td><td class="p1">s0</td><td>1</td><td>4</td><td>0</td><td>1</td><td>46</td><td>46</td><td>32</td></tr>
+                <tr><td>sched_1</td><td class="p2">s1</td><td>2</td><td>0</td><td>4</td><td>5</td><td>22</td><td>18</td><td>8</td></tr>
+                <tr><td>sched_1</td><td class="p3">s2</td><td>3</td><td>0</td><td>6</td><td>7</td><td>34</td><td>28</td><td>14</td></tr>
+                <tr><td>sched_1</td><td class="p4">s3</td><td>4</td><td>0</td><td>7</td><td>11</td><td>35</td><td>28</td><td>16</td></tr>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
