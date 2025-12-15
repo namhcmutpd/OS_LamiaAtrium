@@ -117,6 +117,6 @@ Nhóm chúng em xin gửi lời cảm ơn chân thành đến Thầy Nguyễn Mi
 ---
 
 <p align="center">
-  <em>© 2024 - Trường Đại học Bách khoa - ĐHQG TP.HCM</em><br>
+  <em>© 2025 - Trường Đại học Bách khoa - ĐHQG TP.HCM</em><br>
   <em>Khoa Khoa học và Kỹ thuật Máy tính</em>
 </p>
