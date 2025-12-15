@@ -83,19 +83,6 @@ Trong file `include/os-cfg.h`:
 
 ---
 
-## Các test case
-
-| Test Case | Mô tả | Thành phần kiểm tra |
-|-----------|-------|---------------------|
-| `sched` | 2 CPU, 3 processes, quantum=4 | MLQ Scheduling |
-| `sched_0` | 1 CPU, 2 processes, priority preemption | Priority Scheduling |
-| `sched_1` | Round-robin với nhiều process | Time quantum |
-| `os_1_mlq_paging` | Paging với RAM 2MB | Page allocation |
-| `os_1_mlq_paging_small_1K` | Paging với RAM 2KB | Swapping |
-| `os_1_mlq_paging_small_4K` | Paging với RAM 4KB | Page replacement |
-| `os_syscall` | System call testing | Syscall handler |
-
----
 
 ## Tài liệu tham khảo
 
